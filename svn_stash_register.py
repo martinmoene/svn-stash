@@ -19,7 +19,7 @@ from datetime import datetime
 
 HOME_DIR = os.path.expanduser("~")
 CURRENT_DIR = os.getcwd()
-SVN_STASH_DIR= HOME_DIR + "/.svn-stash"
+SVN_STASH_DIR= os.path.join(HOME_DIR, ".svn-stash")
 COMMAND_DEFAULT="push"
 TARGET_FILE_DEFAULT="all"
 STASH_REGISTER_FILENAME = ".stashed_register"
@@ -34,7 +34,7 @@ class svn_stash_register:
 	def load(self):
    		try:
    			create_stash_dir_if_any()
-			current_dir = SVN_STASH_DIR + "/" + STASH_REGISTER_FILENAME
+			current_dir = os.path.join(SVN_STASH_DIR, STASH_REGISTER_FILENAME)
 			with open(current_dir,"r") as f:
 				for line in f:
 					content = line.rstrip()
@@ -52,7 +52,7 @@ class svn_stash_register:
    	def write(self):
  		try:
  			create_stash_dir_if_any()
-			current_dir = SVN_STASH_DIR + "/" + STASH_REGISTER_FILENAME
+			current_dir = os.path.join(SVN_STASH_DIR, STASH_REGISTER_FILENAME)
    			with open(current_dir,"w") as f:
    				content = []
    				for stash_id in self.all_stashes:
@@ -104,7 +104,7 @@ class svn_stash:
 		else:
 			randkey = random.getrandbits(128) #unique identifier
 			self.files[target_file] = randkey
-			result = os.popen("svn diff " + target_file + " > " + SVN_STASH_DIR + "/" + str(randkey) + ".stash.patch").read()
+			result = os.popen("svn diff " + target_file + " > " + os.path.join(SVN_STASH_DIR, str(randkey) + ".stash.patch")).read()
 			result += os.popen("svn revert " + target_file).read()
 			#print "push " + target_file
 
@@ -113,16 +113,16 @@ class svn_stash:
 		if os.path.exists(SVN_STASH_DIR):
 			for target_file in self.files:
 				randkey = self.files[target_file]
-				result = os.popen("patch -p0 < " + SVN_STASH_DIR + "/" + str(randkey) + ".stash.patch").read()
-				result += os.popen("rm " + SVN_STASH_DIR + "/" + str(randkey) + ".stash.patch").read()
+				result = os.popen("patch -p0 < " + os.path.join(SVN_STASH_DIR, str(randkey) + ".stash.patch")).read()
+				result += os.popen("rm " + os.path.join(SVN_STASH_DIR, str(randkey) + ".stash.patch")).read()
 				#print "pop " + target_file
 			#delete the file of svn_stash
-			result += os.popen("rm " + SVN_STASH_DIR + "/" + str(self.key)).read()
+			result += os.popen("rm " + os.path.join(SVN_STASH_DIR, str(self.key))).read()
 
 	def write(self):
 		#Create file for svn stash
 		try:
-			current_dir = SVN_STASH_DIR + "/" + str(self.key)
+			current_dir = os.path.join(SVN_STASH_DIR, str(self.key))
    			with open(current_dir,"w") as f:
    				content = []
    				#add the first line with root url
@@ -141,12 +141,12 @@ class svn_stash:
 		if os.path.exists(SVN_STASH_DIR):
 			for target_file in self.files:  
 				randkey = self.files[target_file] 		
-   				result += os.popen("rm " + SVN_STASH_DIR + "/" + str(randkey) + ".stash.patch").read()
-   			result += os.popen("rm " + SVN_STASH_DIR + "/" + str(self.key)).read()
+   				result += os.popen("rm " + os.path.join(SVN_STASH_DIR, str(randkey) + ".stash.patch")).read()
+   			result += os.popen("rm " + os.path.join(SVN_STASH_DIR, str(self.key))).read()
 
    	def load(self,stash_id):
    		try:
-			current_dir = SVN_STASH_DIR + "/" + str(stash_id)
+			current_dir = os.path.join(SVN_STASH_DIR, str(stash_id))
 			with open(current_dir,"r") as f:
 				is_first = True
 				for line in f:
@@ -173,7 +173,7 @@ class svn_stash:
    		for filename in self.files:
    			try:
    				real_dir =  filename + ".stash.patch"
-				current_dir = SVN_STASH_DIR + "/" + self.files[filename] + ".stash.patch"	
+				current_dir = os.path.join(SVN_STASH_DIR, self.files[filename] + ".stash.patch")
 				content += print_hr()
 				content += "file " + real_dir
 				content += print_hr()
@@ -193,7 +193,7 @@ class svn_stash:
 def create_stash_dir_if_any():
 	if not os.path.exists(SVN_STASH_DIR):
 		os.makedirs(SVN_STASH_DIR)
-	stash_register_file = SVN_STASH_DIR + "/" + STASH_REGISTER_FILENAME
+	stash_register_file = os.path.join(SVN_STASH_DIR, STASH_REGISTER_FILENAME)
 	if not os.path.exists(stash_register_file):
 		try:
 			f = open(stash_register_file, "w")
@@ -206,10 +206,10 @@ def print_hr(lng=30):
 def is_a_current_stash(stash_id):
 	stash = svn_stash()
 	stash.load(stash_id)
-	current_dir_parts = CURRENT_DIR.split("/")
-	stash_dir_parts = stash.root_url.split("/")
+	current_dir_parts = os.path.split(CURRENT_DIR)
+	stash_dir_parts = os.path.split(stash.root_url)
 	stash_dir_parts = stash_dir_parts[:len(current_dir_parts)]
-	stash_dir = "/".join(stash_dir_parts)
+	stash_dir = os.path.join(*stash_dir_parts)
 	if ".svn" in os.listdir(CURRENT_DIR):	
 		return stash_dir == CURRENT_DIR
 	return False
